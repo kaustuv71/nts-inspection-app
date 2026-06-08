@@ -612,12 +612,18 @@ def build_report(excel_path: str, photo_dir: str, photo_specs: dict | None = Non
         pdf.cell(55, 7, "Description", 1, 0, "C", True)
         pdf.cell(0, 7, "Link", 1, 1, "C", True)
         pdf.set_text_color(*DARK_TEXT)
-        for i, link in enumerate(media_links):
-            if link:
+    for i, link in enumerate(media_links):
+        if link:
+            if isinstance(link, dict):
+                label = link.get("label") or f"Attachment {i+1}"
+                url = link.get("url", "")
+            else:
+                media_labels = ["Sound Tests", "Warehouse & Inspection Clips", "Drop Test Clips", "Product Images"]
                 label = media_labels[i] if i < len(media_labels) else f"Attachment {i+1}"
-                pdf.set_font("Helvetica", "", 8)
-                pdf.cell(55, 6, label, 1, 0, "L")
-                pdf.cell(0, 6, link, 1, 1, "L")
+                url = link
+            pdf.set_font("Helvetica", "", 8)
+            pdf.cell(55, 6, label, 1, 0, "L")
+            pdf.cell(0, 6, url, 1, 1, "L")
         pdf.ln(3)
 
     # VII. Factory Review

@@ -760,13 +760,21 @@ function renderFactoryTab() {
     <textarea onchange="saveFactory('opinion',this.value)" rows="3">${fr.opinion || ''}</textarea>
   </div>
   <div class="card mt-2">
-    <div class="card-title">Media Links</div>
-    <label>Sound Tests</label>
-    <input value="${(d.media_links || [])[0] || ''}" placeholder="Google Drive link" onchange="saveMediaLink(0,this.value)">
-    <label>Warehouse Photos/Videos</label>
-    <input value="${(d.media_links || [])[1] || ''}" placeholder="Google Drive link" onchange="saveMediaLink(1,this.value)">
-    <label>Drop Test Results</label>
-    <input value="${(d.media_links || [])[2] || ''}" placeholder="Google Drive link" onchange="saveMediaLink(2,this.value)">
+    <div class="card-title">Media Links <button class="btn btn-sm btn-outline" style="float:right" onclick="addMediaLink()">+ Add</button></div>
+    ${(d.media_links || []).map((link, idx) => {
+      const label = typeof link === 'string' ? '' : (link.label || '');
+      const url = typeof link === 'string' ? link : (link.url || '');
+      return `<div class="sku-item">
+        <div class="flex-between">
+          <h4>${label || 'Link ' + (idx + 1)}</h4>
+          <button class="btn btn-sm btn-danger" onclick="removeMediaLink(${idx})">Remove</button>
+        </div>
+        <div class="row">
+          <div><label>Label</label><input value="${label}" onchange="updateMediaLink(${idx},'label',this.value)" placeholder="e.g. Sound Tests"></div>
+          <div><label>URL</label><input value="${url}" onchange="updateMediaLink(${idx},'url',this.value)" placeholder="Google Drive link"></div>
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -786,6 +794,56 @@ function saveMediaLink(idx, value) {
     method: 'POST',
     body: { media_links: currentInspection.media_links }
   });
+}
+
+function updateMediaLink(idx, field, value) {
+  if (!currentInspection.media_links) currentInspection.media_links = [];
+  let entry = currentInspection.media_links[idx];
+  if (typeof entry === 'string') entry = currentInspection.media_links[idx] = { label: '', url: entry };
+  entry[field] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { media_links: currentInspection.media_links }
+  });
+}
+
+function addMediaLink() {
+  closeModal();
+  modalEl = document.createElement('div');
+  modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  modalEl.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">Add Media Link</h3>
+      <input id="new-media-label" placeholder="Label (e.g. Sound Tests)" style="margin-bottom:8px">
+      <input id="new-media-url" placeholder="Google Drive link" style="margin-bottom:12px">
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="doAddMediaLink()">Add</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modalEl);
+}
+
+function doAddMediaLink() {
+  const label = document.getElementById('new-media-label')?.value || '';
+  const url = document.getElementById('new-media-url')?.value;
+  if (!url) return;
+  if (!currentInspection.media_links) currentInspection.media_links = [];
+  currentInspection.media_links.push({ label, url });
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { media_links: currentInspection.media_links }
+  });
+  closeModal();
+  renderFactoryTab();
+}
+
+function removeMediaLink(idx) {
+  if (!confirm('Remove this media link?')) return;
+  currentInspection.media_links.splice(idx, 1);
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { media_links: currentInspection.media_links }
+  });
+  renderFactoryTab();
 }
 
 // ── Review Tab ────────────────────────────────────────

@@ -464,12 +464,17 @@ def generate_excel(data: dict) -> Path | None:
     ws_last.cell(r, 1, "Description"); ws_last.cell(r, 3, "Link")
     for c in [1, 3]: ws_last.cell(r, c).font = bold
     r += 1
-    media_labels = ["Sound Tests", "Warehouse & Inspection Clips", "Drop Test Clips", "Product Images"]
     for i, link in enumerate(data.get("media_links", [])):
         if link:
-            label = media_labels[i] if i < len(media_labels) else f"Media {i+1}"
+            if isinstance(link, dict):
+                label = link.get("label") or f"Media {i+1}"
+                url = link.get("url", "")
+            else:
+                media_labels = ["Sound Tests", "Warehouse & Inspection Clips", "Drop Test Clips", "Product Images"]
+                label = media_labels[i] if i < len(media_labels) else f"Media {i+1}"
+                url = link
             ws_last.cell(r, 1, label)
-            ws_last.cell(r, 3, link)
+            ws_last.cell(r, 3, url)
             r += 1
 
     r += 2
