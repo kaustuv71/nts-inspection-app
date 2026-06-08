@@ -598,10 +598,13 @@ function renderPackagingTab() {
   const el = $('tab-packaging');
   
   let html = `<div class="card">
-    <div class="card-title">Packaging, Marking & Labeling</div>`;
+    <div class="card-title">Packaging, Marking & Labeling <button class="btn btn-sm btn-outline" style="float:right" onclick="addPackagingItem()">+ Add</button></div>`;
   (d.packaging || []).forEach((pkg, idx) => {
     html += `<div class="sku-item">
-      <h4>${pkg.item}</h4>
+      <div class="flex-between">
+        <h4>${pkg.item}</h4>
+        <button class="btn btn-sm btn-danger" onclick="removePackagingItem(${idx})">Remove</button>
+      </div>
       <label>Findings</label>
       <textarea onchange="updatePackaging(${idx},'findings',this.value)" rows="2">${pkg.findings || ''}</textarea>
       <div class="row">
@@ -618,7 +621,13 @@ function renderPackagingTab() {
   html += `</div>`;
 
   html += `<div class="card mt-2">
-    <div class="card-title">Functional Tests</div>`;
+    <div class="card-title">Functional Tests <button class="btn btn-sm btn-outline" style="float:right" onclick="addFuncTest()">+ Add</button></div>`;
+  (d.functional_tests || []).forEach((ft, idx) => {
+    html += `<div class="sku-item">
+      <div class="flex-between">
+        <h4>${ft.test}</h4>
+        <button class="btn btn-sm btn-danger" onclick="removeFuncTest(${idx})">Remove</button>
+      </div>
   (d.functional_tests || []).forEach((ft, idx) => {
     html += `<div class="sku-item">
       <h4>${ft.test}</h4>
@@ -660,6 +669,80 @@ function updateFuncTest(idx, field, value) {
     method: 'POST',
     body: { functional_tests: currentInspection.functional_tests }
   });
+}
+
+function addPackagingItem() {
+  closeModal();
+  modalEl = document.createElement('div');
+  modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  modalEl.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">Add Packaging Item</h3>
+      <input id="new-pkg-name" placeholder="Item name" style="margin-bottom:12px">
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="doAddPackagingItem()">Add</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modalEl);
+}
+
+function doAddPackagingItem() {
+  const name = document.getElementById('new-pkg-name')?.value;
+  if (!name) return;
+  if (!currentInspection.packaging) currentInspection.packaging = [];
+  currentInspection.packaging.push({ item: name, findings: '', status: 'pass' });
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { packaging: currentInspection.packaging }
+  });
+  closeModal();
+  renderPackagingTab();
+}
+
+function removePackagingItem(idx) {
+  if (!confirm(`Remove "${currentInspection.packaging[idx]?.item}"?`)) return;
+  currentInspection.packaging.splice(idx, 1);
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { packaging: currentInspection.packaging }
+  });
+  renderPackagingTab();
+}
+
+function addFuncTest() {
+  closeModal();
+  modalEl = document.createElement('div');
+  modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  modalEl.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">Add Functional Test</h3>
+      <input id="new-test-name" placeholder="Test name" style="margin-bottom:12px">
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="doAddFuncTest()">Add</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modalEl);
+}
+
+function doAddFuncTest() {
+  const name = document.getElementById('new-test-name')?.value;
+  if (!name) return;
+  if (!currentInspection.functional_tests) currentInspection.functional_tests = [];
+  currentInspection.functional_tests.push({ test: name, performed: 'yes', result: '', status: 'pass' });
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { functional_tests: currentInspection.functional_tests }
+  });
+  closeModal();
+  renderPackagingTab();
+}
+
+function removeFuncTest(idx) {
+  if (!confirm(`Remove "${currentInspection.functional_tests[idx]?.test}"?`)) return;
+  currentInspection.functional_tests.splice(idx, 1);
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { functional_tests: currentInspection.functional_tests }
+  });
+  renderPackagingTab();
 }
 
 // ── Factory Tab ───────────────────────────────────────
