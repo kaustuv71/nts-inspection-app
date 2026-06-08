@@ -71,7 +71,7 @@
 <body>
 <div class="header">
   <div class="flex-between">
-    <div><img src="/static/nts_logo.png" style="height:48px;width:auto" alt="NTS"></div>
+    <div><img src="/static/nts_logo.png" style="height:64px;width:auto" alt="NTS"></div>
     <button class="btn btn-sm btn-outline" style="border-color:#fff;color:#fff" onclick="showList()">Reports</button>
   </div>
 </div>
@@ -161,21 +161,24 @@ async function renderList() {
 let modalEl = null;
 
 async function newInspection() {
-  if (modalEl) modalEl.remove();
+  closeModal();
   modalEl = document.createElement('div');
   modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
   modalEl.innerHTML = `
     <div style="background:#fff;border-radius:12px;padding:24px;width:280px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
       <h3 style="margin-bottom:16px;color:#0f1a2e">Select Product Type</h3>
-      <button class="btn btn-gold" style="margin-bottom:8px" onclick="createInspection('singing_bowls')">Singing Bowls</button>
-      <button class="btn btn-primary" style="margin-bottom:8px" onclick="createInspection('dryer_balls')">Wool Dryer Balls</button>
-      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="modalEl?.remove();modalEl=null">Cancel</button>
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="closeModal();createInspection('singing_bowls')">Singing Bowls</button>
+      <button class="btn btn-primary" style="margin-bottom:8px" onclick="closeModal();createInspection('dryer_balls')">Wool Dryer Balls</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
     </div>`;
   document.body.appendChild(modalEl);
 }
 
-async function createInspection(type) {
+function closeModal() {
   if (modalEl) { modalEl.remove(); modalEl = null; }
+}
+
+async function createInspection(type) {
   const result = await api('/api/inspection/new', {
     method: 'POST',
     body: { product_type: type }
@@ -418,7 +421,7 @@ async function addSku() {
   const allDefault = templates[currentInspection.product_type]?.default_skus || [];
   const available = allDefault.filter(name => !existing.has(name));
 
-  if (modalEl) modalEl.remove();
+  closeModal();
   modalEl = document.createElement('div');
   modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
   let options = available.map(n => `<option value="${n}">${n}</option>`).join('');
@@ -431,7 +434,7 @@ async function addSku() {
       <select id="add-sku-select" style="margin-bottom:8px">${options}</select>
       <input id="add-sku-custom" placeholder="Or type custom SKU name..." style="margin-bottom:12px">
       <button class="btn btn-gold" style="margin-bottom:8px" onclick="doAddSku()">Add</button>
-      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="modalEl?.remove();modalEl=null">Cancel</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
     </div>`;
   document.body.appendChild(modalEl);
 }
@@ -446,7 +449,7 @@ function doAddSku() {
     method: 'POST',
     body: { skus: currentInspection.skus }
   });
-  if (modalEl) { modalEl.remove(); modalEl = null; }
+  closeModal();
   renderSkusTab();
 }
 
