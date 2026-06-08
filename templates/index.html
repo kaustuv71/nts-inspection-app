@@ -73,6 +73,7 @@
   <div class="flex-between">
     <div><img src="/static/nts_logo.png" style="height:64px;width:auto" alt="NTS"></div>
     <button class="btn btn-sm btn-outline" style="border-color:#fff;color:#fff" onclick="showList()">Reports</button>
+    <button class="btn btn-sm btn-outline" style="border-color:#fff;color:#fff;margin-left:6px" onclick="logout()">Logout</button>
   </div>
 </div>
 
@@ -83,6 +84,17 @@
 
 <div class="toast" id="toast"></div>
 
+<div id="login-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0f1a2e;display:flex;align-items:center;justify-content:center;z-index:999">
+  <div style="text-align:center;padding:24px">
+    <img src="/static/nts_logo.png" style="height:64px;width:auto;margin-bottom:24px" alt="NTS">
+    <div style="background:#fff;border-radius:12px;padding:24px;width:280px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:16px;color:#0f1a2e">NTS Inspection App</h3>
+      <input id="login-password" type="password" placeholder="Enter password" style="margin-bottom:12px" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="btn btn-gold" onclick="doLogin()">Login</button>
+      <div id="login-error" style="color:#dc3545;font-size:12px;margin-top:8px;display:none"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── State ─────────────────────────────────────────────
@@ -107,7 +119,10 @@ function api(url, opts = {}) {
     opts.body = JSON.stringify(opts.body);
     opts.headers['Content-Type'] = 'application/json';
   }
-  return fetch(url, opts).then(r => r.json());
+  return fetch(url, opts).then(r => {
+    if (r.status === 401) { showLogin(); throw new Error('Unauthorized'); }
+    return r.json();
+  });
 }
 
 // ── Views ─────────────────────────────────────────────
@@ -885,8 +900,45 @@ async function deleteInspection(id) {
   renderList();
 }
 
+// ── Auth ──────────────────────────────────────────────
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.header').style.display = 'none';
+}
+
+function hideLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelector('.header').style.display = 'block';
+}
+
+async function doLogin() {
+  const pw = document.getElementById('login-password').value;
+  const err = document.getElementById('login-error');
+  const result = await api('/api/login', { method: 'POST', body: { password: pw } });
+  if (result.ok) {
+    hideLogin();
+    renderList();
+  } else {
+    err.textContent = 'Wrong password';
+    err.style.display = 'block';
+  }
+}
+
+async function logout() {
+  await api('/api/logout', { method: 'POST' });
+  showLogin();
+}
+
 // ── Init ──────────────────────────────────────────────
-renderList();
+(async function init() {
+  const auth = await api('/api/check-auth');
+  if (auth.logged_in) {
+    hideLogin();
+    renderList();
+  } else {
+    showLogin();
+  }
+})();
 </script>
 </body>
 </html>

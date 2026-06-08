@@ -2,13 +2,16 @@
 import os, sys, json, uuid, shutil, io, base64
 from datetime import datetime
 from pathlib import Path
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session
+from functools import wraps
 
 # Add parent to path for report generator
 sys.path.insert(0, str(Path(__file__).parent))
 from report_generator import build_report, read_workbook
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "nts-inspection-secret-change-me")
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "nts2024")
 BASE = Path(__file__).parent
 INSP_DIR = BASE / "inspections"
 PHOTO_DIR = BASE / "photos"
@@ -109,20 +112,44 @@ def save_inspection(insp_id: str, data: dict):
 def list_inspections() -> list[dict]:
     return Inspection.list_all()
 
+# ── Auth ───────────────────────────────────────────────────────
+def require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route("/api/login", methods=["POST"])
+def login():
+    data = request.json
+    if data and data.get("password") == APP_PASSWORD:
+        session["logged_in"] = True
+        return jsonify({"ok": True})
+    return jsonify({"error": "Wrong password"}), 401
+
+@app.route("/api/check-auth")
+def check_auth():
+    return jsonify({"logged_in": session.get("logged_in", False)})
+
 # ── Routes ────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
 
 @app.route("/api/templates")
+@require_auth
 def get_templates():
     return jsonify(PRODUCT_TEMPLATES)
 
 @app.route("/api/inspections")
+@require_auth
 def get_inspections():
     return jsonify(list_inspections())
 
 @app.route("/api/inspection/new", methods=["POST"])
+@require_auth
 def new_inspection():
     data = request.json
     insp_id = str(uuid.uuid4())[:8]
@@ -181,6 +208,7 @@ def new_inspection():
     return jsonify({"id": insp_id})
 
 @app.route("/api/inspection/<insp_id>")
+@require_auth
 def get_inspection(insp_id: str):
     data = load_inspection(insp_id)
     if not data:
@@ -188,6 +216,7 @@ def get_inspection(insp_id: str):
     return jsonify(data)
 
 @app.route("/api/inspection/<insp_id>/save", methods=["POST"])
+@require_auth
 def save_inspection_data(insp_id: str):
     data = load_inspection(insp_id)
     if not data:
@@ -201,6 +230,7 @@ def save_inspection_data(insp_id: str):
     return jsonify({"ok": True})
 
 @app.route("/api/inspection/<insp_id>/photo", methods=["POST"])
+@require_auth
 def upload_photo(insp_id: str):
     data = load_inspection(insp_id)
     if not data:
@@ -248,6 +278,7 @@ def upload_photo(insp_id: str):
     return jsonify({"ok": True, "photo_id": photo_id})
 
 @app.route("/api/inspection/<insp_id>/generate", methods=["POST"])
+@require_auth
 def generate_report(insp_id: str):
     data = load_inspection(insp_id)
     if not data:
@@ -281,6 +312,7 @@ def generate_report(insp_id: str):
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/inspection/<insp_id>/delete", methods=["POST"])
+@require_auth
 def delete_inspection(insp_id: str):
     row = Inspection.query.get(insp_id)
     if row:
@@ -294,6 +326,7 @@ def delete_inspection(insp_id: str):
     return jsonify({"ok": True})
 
 @app.route("/photos/<path:filename>")
+@require_auth
 def serve_photo(filename):
     # Try filesystem first, then database
     photo_path = PHOTO_DIR / filename
@@ -307,7 +340,13 @@ def serve_photo(filename):
         return Response(img_bytes, mimetype="image/jpeg")
     return jsonify({"error": "Not found"}), 404
 
+@app.route("/api/logout", methods=["POST"])
+def logout():
+    session.clear()
+    return jsonify({"ok": True})
+
 @app.route("/download/<path:filename>")
+@require_auth
 def download(filename):
     return send_from_directory(str(BASE), filename, as_attachment=True)
 

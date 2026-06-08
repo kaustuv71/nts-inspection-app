@@ -10,6 +10,10 @@ services:
         fromDatabase:
           name: nts-inspection-db
           property: connectionString
+      - key: APP_PASSWORD
+        value: nts2024
+      - key: SECRET_KEY
+        generateValue: true
 
 databases:
   - name: nts-inspection-db
