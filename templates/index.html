@@ -409,7 +409,8 @@ function renderSkusTab() {
       <div class="row">
         <div><label>Ref. Category</label><input value="${sku.ref_category || ''}" onchange="updateSku(${idx},'ref_category',this.value)" placeholder="e.g. C, E"></div>
       </div>
-      <div class="photo-btn mt-2" onclick="openCamera(${idx})">Take Photo</div>
+      <button class="btn btn-sm btn-outline mt-2" onclick="openCamera(${idx},true)" style="width:48%">Take Photo</button>
+      <button class="btn btn-sm btn-outline mt-2" onclick="openCamera(${idx},false)" style="width:48%;float:right">Upload Image</button>
       ${sku.photos && sku.photos.length > 0 ? `<div class="photo-grid">${sku.photos.map((p, pi) => {
         const imgPath = typeof p === 'string' ? p : p.path;
         const cap = typeof p === 'string' ? '' : p.caption || '';
@@ -509,12 +510,12 @@ function removeSku(idx) {
 }
 
 // ── Camera ────────────────────────────────────────────
-function openCamera(skuIdx) {
+function openCamera(skuIdx, useCamera = true) {
   cameraSkuIdx = skuIdx;
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
-  input.capture = 'environment';
+  if (useCamera) input.capture = 'environment';
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -531,7 +532,7 @@ function openCamera(skuIdx) {
         method: 'POST',
         body: form
       });
-      toast('Photo captured!');
+      toast(useCamera ? 'Photo captured!' : 'Image uploaded!');
       loadInspection(currentInspection.id);
     };
     reader.readAsDataURL(file);
