@@ -178,6 +178,47 @@ function closeModal() {
   if (modalEl) { modalEl.remove(); modalEl = null; }
 }
 
+function modalPrompt(label, initial = '') {
+  return new Promise(resolve => {
+    closeModal();
+    modalEl = document.createElement('div');
+    modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+    modalEl.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+        <p style="margin-bottom:12px;color:#0f1a2e">${label}</p>
+        <input id="modal-prompt-input" value="${initial}" style="margin-bottom:12px" placeholder="(leave blank to skip)">
+        <button class="btn btn-gold" style="margin-bottom:8px" onclick="modalPromptDone(true)">OK</button>
+        <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="modalPromptDone(false)">Cancel</button>
+      </div>`;
+    document.body.appendChild(modalEl);
+    window._modalPromptResolve = resolve;
+  });
+}
+
+function modalPromptDone(ok) {
+  const val = document.getElementById('modal-prompt-input')?.value || '';
+  const resolve = window._modalPromptResolve;
+  closeModal();
+  if (resolve) resolve(ok ? val : null);
+}
+
+function modalPrompt(label, initial = '') {
+  return new Promise(resolve => {
+    closeModal();
+    modalEl = document.createElement('div');
+    modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+    modalEl.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+        <p style="margin-bottom:12px;color:#0f1a2e">${label}</p>
+        <input id="modal-prompt-input" value="${initial}" style="margin-bottom:12px" placeholder="(leave blank to skip)">
+        <button class="btn btn-gold" style="margin-bottom:8px" onclick="document.getElementById('modal-prompt-input').dataset.done='1';resolveModal()">OK</button>
+        <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="resolveModal(null)">Cancel</button>
+      </div>`;
+    document.body.appendChild(modalEl);
+    window.resolveModal = resolve;
+  });
+}
+
 async function createInspection(type) {
   const result = await api('/api/inspection/new', {
     method: 'POST',
@@ -497,7 +538,8 @@ function openCamera(skuIdx) {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const dataUrl = ev.target.result;
-      const caption = prompt('Describe any defect in this photo (or leave blank):') || '';
+      const caption = await modalPrompt('Describe any defect in this photo (or leave blank):', '');
+      if (caption === null) return;
       const form = new FormData();
       form.append('photo', dataUrl);
       form.append('sku_idx', skuIdx);
@@ -519,8 +561,24 @@ function editCaption(skuIdx, photoIdx) {
   if (!sku || !sku.photos[photoIdx]) return;
   const p = sku.photos[photoIdx];
   const current = typeof p === 'string' ? '' : p.caption || '';
-  const caption = prompt('Edit defect description:', current);
-  if (caption === null) return;
+  closeModal();
+  modalEl = document.createElement('div');
+  modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  modalEl.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">Edit Defect Description</h3>
+      <textarea id="edit-caption-input" rows="3" style="margin-bottom:12px">${current}</textarea>
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="saveEditCaption(${skuIdx},${photoIdx})">Save</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modalEl);
+}
+
+function saveEditCaption(skuIdx, photoIdx) {
+  const caption = document.getElementById('edit-caption-input').value;
+  const sku = currentInspection.skus[skuIdx];
+  if (!sku || !sku.photos[photoIdx]) return;
+  const p = sku.photos[photoIdx];
   if (typeof p === 'string') {
     sku.photos[photoIdx] = { path: p, caption };
   } else {
@@ -530,6 +588,7 @@ function editCaption(skuIdx, photoIdx) {
     method: 'POST',
     body: { skus: currentInspection.skus }
   });
+  closeModal();
   renderSkusTab();
 }
 
