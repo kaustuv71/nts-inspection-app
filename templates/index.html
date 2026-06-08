@@ -408,15 +408,41 @@ function updateSkuMeasurement(idx, field, value) {
   });
 }
 
-function addSku() {
+async function addSku() {
   if (!currentInspection.skus) currentInspection.skus = [];
-  const name = prompt('SKU Name:');
+  const existing = new Set(currentInspection.skus.map(s => s.name));
+  const templates = await api('/api/templates');
+  const allDefault = templates[currentInspection.product_type]?.default_skus || [];
+  const available = allDefault.filter(name => !existing.has(name));
+
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  let options = available.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (available.length === 0) {
+    options = '<option value="">-- No default SKUs left --</option>';
+  }
+  el.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">Add SKU</h3>
+      <select id="add-sku-select" style="margin-bottom:8px">${options}</select>
+      <input id="add-sku-custom" placeholder="Or type custom SKU name..." style="margin-bottom:12px">
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="doAddSku()">Add</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="this.closest('div[style]').parentElement.remove()">Cancel</button>
+    </div>`;
+  document.body.appendChild(el);
+}
+
+function doAddSku() {
+  const select = document.getElementById('add-sku-select');
+  const custom = document.getElementById('add-sku-custom');
+  const name = select?.value || custom?.value || '';
   if (!name) return;
   currentInspection.skus.push({ name, ordered: '', found: '', missing: '', sampled: '', measurements: {}, defects: '', ref_category: '', photos: [] });
   api(`/api/inspection/${currentInspection.id}/save`, {
     method: 'POST',
     body: { skus: currentInspection.skus }
   });
+  document.querySelector('div[style*="z-index:300"]')?.remove();
   renderSkusTab();
 }
 

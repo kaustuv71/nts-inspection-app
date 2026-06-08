@@ -61,11 +61,15 @@ PRODUCT_TEMPLATES = {
     "singing_bowls": {
         "name": "Singing Bowls",
         "default_skus": [
-            "BMSB Without Box", "BGSB REG With Box", "OBSB With Box",
-            "PTSB With Box", "BMSB With Box", "CHSB With Box",
-            "BAGS With Box", "BGSB BRNZ With Box", "BAGS Without Box",
-            "ASB With Box", "BSB With Box", "BSB Without Box",
-            "OBSB Without Box", "ASB Without Box", "BGSB With Box",
+            "ASB With Box", "ASB Without Box",
+            "BSB With Box", "BSB Without Box",
+            "BMSB With Box", "BMSB Without Box",
+            "BGSB REG With Box", "BGSB REG Without Box",
+            "BGSB BRNZ With Box", "BGSB BRNZ Without Box",
+            "BAGS With Box", "BAGS Without Box",
+            "OBSB With Box", "OBSB Without Box",
+            "CHSB With Box", "CHSB Without Box",
+            "PTSB With Box", "PTSB Without Box",
         ],
         "packaging_items": [
             "Bubble Wrap & 7-Piece Set Fit", "Unit Packaging Completeness",
