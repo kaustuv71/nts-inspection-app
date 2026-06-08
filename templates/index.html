@@ -202,23 +202,6 @@ function modalPromptDone(ok) {
   if (resolve) resolve(ok ? val : null);
 }
 
-function modalPrompt(label, initial = '') {
-  return new Promise(resolve => {
-    closeModal();
-    modalEl = document.createElement('div');
-    modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
-    modalEl.innerHTML = `
-      <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
-        <p style="margin-bottom:12px;color:#0f1a2e">${label}</p>
-        <input id="modal-prompt-input" value="${initial}" style="margin-bottom:12px" placeholder="(leave blank to skip)">
-        <button class="btn btn-gold" style="margin-bottom:8px" onclick="document.getElementById('modal-prompt-input').dataset.done='1';resolveModal()">OK</button>
-        <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="resolveModal(null)">Cancel</button>
-      </div>`;
-    document.body.appendChild(modalEl);
-    window.resolveModal = resolve;
-  });
-}
-
 async function createInspection(type) {
   const result = await api('/api/inspection/new', {
     method: 'POST',
@@ -628,9 +611,6 @@ function renderPackagingTab() {
         <h4>${ft.test}</h4>
         <button class="btn btn-sm btn-danger" onclick="removeFuncTest(${idx})">Remove</button>
       </div>
-  (d.functional_tests || []).forEach((ft, idx) => {
-    html += `<div class="sku-item">
-      <h4>${ft.test}</h4>
       <div class="row">
         <div><label>Performed</label>
           <select onchange="updateFuncTest(${idx},'performed',this.value)">
