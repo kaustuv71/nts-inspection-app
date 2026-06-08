@@ -742,9 +742,11 @@ def build_report(excel_path: str, photo_dir: str, photo_specs: dict | None = Non
     pdf.ln(2)
     pdf.set_text_color(*DARK_TEXT)
     pdf.set_font("Helvetica", "I", 7)
-    pdf.multi_cell(0, 3.5, "Note: This report presents our observations and findings based on the inspection conducted on the date stated. "
-                 "It is prepared solely for the use of the client named above and contains confidential information. "
-                 "Nepal Trade Solutions shall not be liable for any reliance placed on this report by third parties.")
+    pdf.multi_cell(0, 3.5, "Note: This report presents our observations and findings based on the inspection conducted at the specified location and time, using randomly selected samples. "
+                 "The inspection was performed to the best of our professional judgment and ability. Our responsibility is limited to conducting a reasonable examination under standard inspection conditions. "
+                 "This report does not exempt the supplier from their contractual obligations, nor does it affect the buyer's rights to claim compensation for any visible or hidden defects not identified during inspection or discovered thereafter. "
+                 "This report is not a confirmation of shipment or dispatch. "
+                 "All inspection services rendered by Nepal Trade Solutions Pvt. Ltd. are governed by our Terms and Conditions of Service, available upon request or via our official communication channels.")
 
     pdf.output(str(pdf_path))
     return str(pdf_path)
