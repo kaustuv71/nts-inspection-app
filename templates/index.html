@@ -120,7 +120,7 @@ function api(url, opts = {}) {
     opts.headers['Content-Type'] = 'application/json';
   }
   return fetch(url, opts).then(r => {
-    if (r.status === 401) { showLogin(); throw new Error('Unauthorized'); }
+    if (r.status === 401 && !url.includes('/api/login')) { showLogin(); throw new Error('Unauthorized'); }
     return r.json();
   });
 }
@@ -405,9 +405,9 @@ function renderSkusTab() {
   (d.skus || []).forEach((sku, idx) => {
     html += `<div class="sku-item">
       <div class="flex-between">
-        <h4>${sku.name || `SKU ${idx + 1}`}</h4>
-        <button class="btn btn-sm btn-danger" onclick="removeSku(${idx})">Remove</button>
-      </div>
+         <h4>${sku.name || `SKU ${idx + 1}`} ${sku.photos && sku.photos.length > 0 ? `<span class="badge" style="background:#c69c4b;color:#fff;font-size:10px;padding:2px 6px;border-radius:8px;vertical-align:middle">${sku.photos.length} 📷</span>` : ''}</h4>
+         <button class="btn btn-sm btn-danger" onclick="removeSku(${idx})">Remove</button>
+       </div>
       <div class="row mt-2">
         <div><label>Ordered</label><input type="number" value="${sku.ordered}" onchange="updateSku(${idx},'ordered',this.value)" placeholder="0"></div>
         <div><label>Found</label><input type="number" value="${sku.found}" onchange="updateSku(${idx},'found',this.value)" placeholder="0"></div>
@@ -429,9 +429,15 @@ function renderSkusTab() {
       ${sku.photos && sku.photos.length > 0 ? `<div class="photo-grid">${sku.photos.map((p, pi) => {
         const imgPath = typeof p === 'string' ? p : p.path;
         const cap = typeof p === 'string' ? '' : p.caption || '';
+        const fname = imgPath.replace('photos/','');
+        const photoCount = sku.photos ? sku.photos.length : 0;
         return `<div style="position:relative;margin-bottom:4px">
           <img src="/${imgPath}" onerror="this.style.display='none'" style="width:100%;height:80px;object-fit:cover;border-radius:4px;border:1px solid #e5e0d5">
           <div style="font-size:9px;color:#dc3545;margin-top:2px;line-height:1.2;cursor:pointer" onclick="editCaption(${idx},${pi})">${cap || '<span style="color:#999;font-style:italic">Tap to add defect description</span>'}</div>
+          <div style="position:absolute;top:4px;right:4px;display:flex;gap:4px">
+            <span onclick="deletePhoto(${idx},${pi})" style="background:rgba(220,53,69,0.85);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:bold" title="Delete photo">&#xd7;</span>
+            <a href="/api/photo/${fname}/download" download style="background:rgba(0,0,0,0.6);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:14px" title="Download to device">&#x2913;</a>
+          </div>
         </div>`;
       }).join('')}</div>` : ''}
     </div>`;
@@ -543,11 +549,18 @@ function openCamera(skuIdx, useCamera = true) {
       form.append('photo', dataUrl);
       form.append('sku_idx', skuIdx);
       form.append('caption', caption);
-      await api(`/api/inspection/${currentInspection.id}/photo`, {
+      const resp = await api(`/api/inspection/${currentInspection.id}/photo`, {
         method: 'POST',
         body: form
       });
       toast(useCamera ? 'Photo captured!' : 'Image uploaded!');
+      // Auto-download to device
+      if (resp && resp.photo_id) {
+        const a = document.createElement('a');
+        a.href = `/api/photo/${resp.photo_id}/download`;
+        a.download = resp.photo_id;
+        a.click();
+      }
       loadInspection(currentInspection.id);
     };
     reader.readAsDataURL(file);
@@ -589,6 +602,35 @@ function saveEditCaption(skuIdx, photoIdx) {
   });
   closeModal();
   renderSkusTab();
+}
+
+function deletePhoto(skuIdx, photoIdx) {
+  const sku = currentInspection.skus[skuIdx];
+  if (!sku || !sku.photos[photoIdx]) return;
+  const p = sku.photos[photoIdx];
+  const path = typeof p === 'string' ? p : p.path;
+  const fname = path.replace('photos/','');
+  closeModal();
+  modalEl = document.createElement('div');
+  modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  modalEl.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">Delete Photo?</h3>
+      <p style="font-size:13px;color:#666;margin-bottom:16px">This will permanently remove this photo from the inspection.</p>
+      <button class="btn btn-gold" style="margin-bottom:8px;background:#dc3545;border-color:#dc3545" onclick="confirmDeletePhoto(${skuIdx},${photoIdx},'${fname}')">Delete</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modalEl);
+}
+
+async function confirmDeletePhoto(skuIdx, photoIdx, filename) {
+  closeModal();
+  await api(`/api/inspection/${currentInspection.id}/photo/delete`, {
+    method: 'POST',
+    body: { sku_idx: skuIdx, filename }
+  });
+  toast('Photo deleted');
+  loadInspection(currentInspection.id);
 }
 
 // ── Packaging Tab ─────────────────────────────────────

@@ -345,6 +345,56 @@ def logout():
     session.clear()
     return jsonify({"ok": True})
 
+@app.route("/api/photo/<filename>/download")
+@require_auth
+def download_photo(filename):
+    photo_path = PHOTO_DIR / filename
+    if photo_path.exists():
+        return send_from_directory(str(PHOTO_DIR), filename, as_attachment=True, download_name=filename)
+    photo = Photo.query.filter_by(filename=filename).first()
+    if photo:
+        from flask import Response
+        img_bytes = base64.b64decode(photo.data)
+        return Response(
+            img_bytes,
+            mimetype="image/jpeg",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    return jsonify({"error": "Not found"}), 404
+
+@app.route("/api/inspection/<insp_id>/photo/delete", methods=["POST"])
+@require_auth
+def delete_photo(insp_id):
+    data = load_inspection(insp_id)
+    if not data:
+        return jsonify({"error": "Not found"}), 404
+
+    req = request.json or {}
+    sku_idx = int(req.get("sku_idx", -1))
+    filename = req.get("filename", "")
+
+    # Remove from DB
+    photo = Photo.query.filter_by(inspection_id=insp_id, filename=filename).first()
+    if photo:
+        db.session.delete(photo)
+        db.session.commit()
+
+    # Remove from inspection data
+    if sku_idx is not None and 0 <= sku_idx < len(data.get("skus", [])):
+        photos = data["skus"][sku_idx].get("photos", [])
+        data["skus"][sku_idx]["photos"] = [
+            p for p in photos
+            if not (f"photos/{filename}" == (p.get("path") if isinstance(p, dict) else p))
+        ]
+        save_inspection(insp_id, data)
+
+    # Delete from disk if present
+    fpath = PHOTO_DIR / filename
+    if fpath.exists():
+        fpath.unlink()
+
+    return jsonify({"ok": True})
+
 @app.route("/download/<path:filename>")
 @require_auth
 def download(filename):
