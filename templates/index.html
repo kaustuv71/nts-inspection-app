@@ -342,7 +342,10 @@ function renderSkusTab() {
       ${sku.photos && sku.photos.length > 0 ? `<div class="photo-grid">${sku.photos.map((p, pi) => {
         const imgPath = typeof p === 'string' ? p : p.path;
         const cap = typeof p === 'string' ? '' : p.caption || '';
-        return `<div style="position:relative;margin-bottom:4px"><img src="/${imgPath}" onerror="this.style.display='none'" style="width:100%;height:80px;object-fit:cover;border-radius:4px;border:1px solid #e5e0d5">${cap ? `<div style="font-size:9px;color:#dc3545;margin-top:2px;line-height:1.2">${cap}</div>` : ''}</div>`;
+        return `<div style="position:relative;margin-bottom:4px">
+          <img src="/${imgPath}" onerror="this.style.display='none'" style="width:100%;height:80px;object-fit:cover;border-radius:4px;border:1px solid #e5e0d5">
+          <div style="font-size:9px;color:#dc3545;margin-top:2px;line-height:1.2;cursor:pointer" onclick="editCaption(${idx},${pi})">${cap || '<span style="color:#999;font-style:italic">Tap to add defect description</span>'}</div>
+        </div>`;
       }).join('')}</div>` : ''}
     </div>`;
   });
@@ -417,10 +420,10 @@ function openCamera(skuIdx) {
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const caption = prompt('Describe defects in this photo (optional):') || '';
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const dataUrl = ev.target.result;
+      const caption = prompt('Describe any defect in this photo (or leave blank):') || '';
       const form = new FormData();
       form.append('photo', dataUrl);
       form.append('sku_idx', skuIdx);
@@ -435,6 +438,25 @@ function openCamera(skuIdx) {
     reader.readAsDataURL(file);
   };
   input.click();
+}
+
+function editCaption(skuIdx, photoIdx) {
+  const sku = currentInspection.skus[skuIdx];
+  if (!sku || !sku.photos[photoIdx]) return;
+  const p = sku.photos[photoIdx];
+  const current = typeof p === 'string' ? '' : p.caption || '';
+  const caption = prompt('Edit defect description:', current);
+  if (caption === null) return;
+  if (typeof p === 'string') {
+    sku.photos[photoIdx] = { path: p, caption };
+  } else {
+    p.caption = caption;
+  }
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { skus: currentInspection.skus }
+  });
+  renderSkusTab();
 }
 
 // ── Packaging Tab ─────────────────────────────────────

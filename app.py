@@ -44,6 +44,7 @@ PRODUCT_TEMPLATES = {
             "Penguin and Friends", "Kitty and Friends", "Puppy and Friends",
             "Owl and Friends", "Fox and Friends", "Gorilla and Friends",
             "Hamster and Friends", "Cow and Friends", "Whimsicat and Friends",
+            "All Penguins",
         ],
         "packaging_items": [
             "Pouch Fit (6 balls)", "Insert Card in Each Pouch",
