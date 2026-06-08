@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: nts-inspection-app
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nts-inspection-db
+          property: connectionString
+
+databases:
+  - name: nts-inspection-db
+    plan: free
+    databaseName: nts_inspections
+    ipAllowList: []
