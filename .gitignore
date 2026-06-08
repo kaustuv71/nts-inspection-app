@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.db
+.env
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
+
+# Old inspection data (not part of the app)
+Asterisk International/
+Factory Audit/
+Millenium International/
+Samyak International/
+Samyak International test/
+
+# Generated during use
+inspections/
+photos/
+*.xlsx
+*.pdf
+test_*.py

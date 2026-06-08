@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NTS Inspection App</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f2ed; color: #333; }
+  .header { background: #0f1a2e; color: #c69c4b; padding: 16px; position: sticky; top: 0; z-index: 100; }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+  .header .sub { color: #fff; font-size: 11px; opacity: 0.7; }
+  .container { padding: 16px; max-width: 600px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card-title { font-size: 14px; font-weight: 600; color: #0f1a2e; margin-bottom: 12px; border-bottom: 2px solid #c69c4b; padding-bottom: 6px; }
+  label { display: block; font-size: 11px; font-weight: 600; color: #6b6460; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 10px; }
+  label:first-child { margin-top: 0; }
+  input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #e5e0d5; border-radius: 6px; font-size: 14px; background: #faf9f6; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #c69c4b; }
+  textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-primary { background: #0f1a2e; color: #fff; width: 100%; }
+  .btn-primary:hover { background: #1a2a42; }
+  .btn-gold { background: #c69c4b; color: #fff; width: 100%; }
+  .btn-gold:hover { background: #a67b2e; }
+  .btn-danger { background: #dc3545; color: #fff; padding: 6px 12px; font-size: 12px; }
+  .btn-sm { padding: 8px 14px; font-size: 12px; }
+  .btn-outline { background: transparent; border: 1px solid #c69c4b; color: #c69c4b; }
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+  .mb-2 { margin-bottom: 8px; }
+  .flex { display: flex; gap: 8px; align-items: center; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge-draft { background: #fff3cd; color: #856404; }
+  .badge-completed { background: #d4edda; color: #155724; }
+  .status-tag { padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .status-passed { background: #d4edda; color: #155724; }
+  .status-failed { background: #f8d7da; color: #721c24; }
+  .sku-item { background: #f9f7f2; border: 1px solid #e5e0d5; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+  .sku-item h4 { font-size: 13px; color: #0f1a2e; margin-bottom: 6px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+  .photo-grid img { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; border: 1px solid #e5e0d5; }
+  .photo-btn { background: #f0eee8; border: 2px dashed #c69c4b; border-radius: 6px; padding: 20px; text-align: center; cursor: pointer; color: #c69c4b; font-size: 13px; font-weight: 600; }
+  .photo-btn:hover { background: #e8e4dc; }
+  #camera-preview { display: none; width: 100%; max-height: 300px; background: #000; border-radius: 8px; margin-top: 8px; }
+  .nav-tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+  .nav-tabs button { flex-shrink: 0; padding: 8px 14px; border: 1px solid #e5e0d5; background: #fff; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .nav-tabs button.active { background: #0f1a2e; color: #c69c4b; border-color: #0f1a2e; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .empty-state { text-align: center; padding: 40px 20px; color: #6b6460; }
+  .empty-state h2 { font-size: 20px; color: #0f1a2e; margin-bottom: 8px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #0f1a2e; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 13px; z-index: 200; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+  .insp-item { padding: 12px; border-bottom: 1px solid #e5e0d5; cursor: pointer; }
+  .insp-item:hover { background: #f9f7f2; }
+  .insp-item:last-child { border-bottom: none; }
+  .insp-item h3 { font-size: 14px; color: #0f1a2e; }
+  .insp-item p { font-size: 12px; color: #6b6460; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .summary-cat { padding: 8px; border: 1px solid #e5e0d5; border-radius: 6px; cursor: pointer; }
+  .summary-cat .cat-label { font-size: 11px; font-weight: 600; color: #6b6460; }
+  .summary-cat .cat-status { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .loading { text-align: center; padding: 40px; color: #6b6460; }
+  @media (max-width: 400px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="flex-between">
+    <div><h1>NTS INSPECTION</h1><div class="sub">Mobile Report Tool</div></div>
+    <button class="btn btn-sm btn-outline" style="border-color:#fff;color:#fff" onclick="showList()">Reports</button>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <div id="view-list"></div>
+  <div id="view-inspection" style="display:none"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+// ── State ─────────────────────────────────────────────
+let currentView = 'list';
+let currentInspection = null;
+let activeTab = 'general';
+let cameraStream = null;
+let cameraSkuIdx = null;
+
+// ── Helpers ───────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2500);
+}
+
+function api(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  if (opts.body && typeof opts.body === 'object' && !(opts.body instanceof FormData)) {
+    opts.body = JSON.stringify(opts.body);
+    opts.headers['Content-Type'] = 'application/json';
+  }
+  return fetch(url, opts).then(r => r.json());
+}
+
+// ── Views ─────────────────────────────────────────────
+function showList() {
+  currentView = 'list';
+  $('view-list').style.display = 'block';
+  $('view-inspection').style.display = 'none';
+  renderList();
+}
+
+function showInspection(id) {
+  currentView = 'inspection';
+  $('view-list').style.display = 'none';
+  $('view-inspection').style.display = 'block';
+  loadInspection(id);
+}
+
+// ── List View ─────────────────────────────────────────
+async function renderList() {
+  const el = $('view-list');
+  el.innerHTML = `<div class="card">
+    <div class="flex-between mb-2">
+      <span class="card-title" style="border:none;margin:0;padding:0">Inspections</span>
+      <button class="btn btn-sm btn-gold" onclick="newInspection()">+ New</button>
+    </div>
+    <div id="insp-list"><div class="loading">Loading...</div></div>
+  </div>`;
+
+  const inspections = await api('/api/inspections');
+  const list = $('insp-list');
+  if (inspections.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <h2>No inspections yet</h2>
+      <p>Tap "+ New" to start your first report</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = inspections.map(i => `<div class="insp-item" onclick="showInspection('${i.id}')">
+    <div class="flex-between">
+      <h3>${i.client || 'New Inspection'} <span class="badge badge-${i.status}">${i.status}</span></h3>
+    </div>
+    <p>${i.product} &middot; ${i.inspection_date || 'No date'} &middot; ${i.updated ? new Date(i.updated).toLocaleDateString() : ''}</p>
+  </div>`).join('');
+}
+
+async function newInspection() {
+  const type = confirm('Create for Singing Bowls? Click OK for Singing Bowls, Cancel for Dryer Balls') ? 'singing_bowls' : 'dryer_balls';
+  const result = await api('/api/inspection/new', {
+    method: 'POST',
+    body: { product_type: type }
+  });
+  if (result.id) {
+    toast(`Created new ${type === 'singing_bowls' ? 'Singing Bowls' : 'Dryer Balls'} report`);
+    showInspection(result.id);
+  }
+}
+
+// ── Inspection View ───────────────────────────────────
+async function loadInspection(id) {
+  $('view-inspection').innerHTML = '<div class="loading">Loading inspection...</div>';
+  currentInspection = await api(`/api/inspection/${id}`);
+  renderInspection();
+}
+
+async function saveField(field, value) {
+  if (!currentInspection) return;
+  currentInspection[field] = value;
+  await api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { [field]: value }
+  });
+}
+
+function renderInspection() {
+  const d = currentInspection;
+  if (!d) return;
+  const el = $('view-inspection');
+
+  const tabs = [
+    { id: 'general', label: 'General' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'skus', label: 'SKUs' },
+    { id: 'packaging', label: 'Pack/Tests' },
+    { id: 'factory', label: 'Factory' },
+    { id: 'review', label: 'Review' },
+  ];
+
+  el.innerHTML = `
+    <div class="flex-between mb-2">
+      <button class="btn btn-sm btn-outline" onclick="showList()">&larr; Back</button>
+      <button class="btn btn-sm btn-gold" onclick="generateReport()">Generate PDF</button>
+    </div>
+    <div class="nav-tabs">${tabs.map(t => `<button class="${activeTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.label}</button>`).join('')}</div>
+    ${tabs.map(t => `<div class="tab-content ${activeTab === t.id ? 'active' : ''}" id="tab-${t.id}"></div>`).join('')}
+  `;
+
+  renderGeneralTab();
+  renderSummaryTab();
+  renderSkusTab();
+  renderPackagingTab();
+  renderFactoryTab();
+  renderReviewTab();
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  renderInspection();
+}
+
+// ── General Tab ───────────────────────────────────────
+function renderGeneralTab() {
+  const d = currentInspection;
+  const el = $('tab-general');
+  el.innerHTML = `<div class="card">
+    <div class="card-title">General Information</div>
+    <div class="row">
+      <div><label>Client *</label><input id="f-client" value="${d.client || ''}" onchange="saveField('client', this.value)"></div>
+      <div><label>Inspection Date</label><input id="f-date" type="date" value="${d.inspection_date ? d.inspection_date.split(' ')[0] : ''}" onchange="saveField('inspection_date', this.value)"></div>
+    </div>
+    <div class="row">
+      <div><label>Supplier</label><input id="f-supplier" value="${d.supplier || ''}" onchange="saveField('supplier', this.value)"></div>
+      <div><label>Destination</label><input id="f-dest" value="${d.destination || ''}" onchange="saveField('destination', this.value)"></div>
+    </div>
+    <label>Factory Address</label>
+    <input id="f-addr" value="${d.factory_address || ''}" onchange="saveField('factory_address', this.value)">
+    <div class="row">
+      <div><label>Product</label><input id="f-product" value="${d.product_name || ''}" onchange="saveField('product_name', this.value)"></div>
+      <div><label>SKU Designs</label><input id="f-skus" value="${d.sku_designs || ''}" onchange="saveField('sku_designs', this.value)"></div>
+    </div>
+    <div class="row">
+      <div><label>Duration</label><input id="f-dur" value="${d.inspection_duration || ''}" placeholder="e.g. 11:00 - 13:45" onchange="saveField('inspection_duration', this.value)"></div>
+      <div><label>Inspectors</label><input id="f-insp" value="${d.inspectors || ''}" onchange="saveField('inspectors', this.value)"></div>
+    </div>
+    <div class="row">
+      <div><label>Order Qty</label><input id="f-oqty" value="${d.order_quantity || ''}" onchange="saveField('order_quantity', this.value)"></div>
+      <div><label>Sampled Qty</label><input id="f-sqty" value="${d.sampled_quantity || ''}" onchange="saveField('sampled_quantity', this.value)"></div>
+    </div>
+    <label>Report ID</label>
+    <input id="f-rid" value="${d.report_id || ''}" placeholder="e.g. NTS0736" onchange="saveField('report_id', this.value)">
+    <div class="row">
+      <div><label>Location</label><input id="f-loc" value="${d.inspection_location || ''}" onchange="saveField('inspection_location', this.value)"></div>
+    </div>
+  </div>`;
+}
+
+// ── Summary Tab ───────────────────────────────────────
+function renderSummaryTab() {
+  const d = currentInspection;
+  const el = $('tab-summary');
+  const cats = [
+    { id: 'A', label: 'A. Quantity' },
+    { id: 'B', label: 'B. Shape & Size' },
+    { id: 'C', label: 'C. Workmanship' },
+    { id: 'D', label: 'D. Product Spec' },
+    { id: 'E', label: 'E. Packing' },
+    { id: 'F', label: 'F. Marking & Labeling' },
+    { id: 'G', label: 'G. Client Requirements' },
+    { id: 'H', label: 'H. Factory Review' },
+  ];
+  let html = `<div class="card">
+    <div class="card-title">Inspection Summary</div>
+    <div class="summary-grid">`;
+  cats.forEach(c => {
+    const s = (d.summary || {})[c.id] || { status: 'passed', findings: '' };
+    html += `<div class="summary-cat" onclick="editSummary('${c.id}')">
+      <div class="cat-label">${c.label}</div>
+      <div class="cat-status status-${s.status}">${s.status.toUpperCase()}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+  
+  // AQL
+  html += `<div class="card mt-2">
+    <div class="card-title">AQL Details</div>
+    <div class="row">
+      <div><label>Standard</label><input value="${d.aql_standard || ''}" onchange="saveField('aql_standard', this.value)"></div>
+      <div><label>Sampling Plan</label><input value="${d.aql_sampling_plan || ''}" onchange="saveField('aql_sampling_plan', this.value)"></div>
+    </div>
+    <div class="row">
+      <div><label>Level</label><input value="${d.aql_level || ''}" onchange="saveField('aql_level', this.value)"></div>
+    </div>
+    <div class="row">
+      <div><label>Critical</label><input value="${d.aql_critical || ''}" onchange="saveField('aql_critical', this.value)"></div>
+      <div><label>Major</label><input value="${d.aql_major || ''}" onchange="saveField('aql_major', this.value)"></div>
+      <div><label>Minor</label><input value="${d.aql_minor || ''}" onchange="saveField('aql_minor', this.value)"></div>
+    </div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+function editSummary(catId) {
+  const s = (currentInspection.summary || {})[catId] || { status: 'passed', findings: '' };
+  const status = prompt(`Status for ${catId} (passed/failed/pending):`, s.status);
+  if (!status) return;
+  const findings = prompt(`Findings for ${catId}:`, s.findings);
+  if (!currentInspection.summary) currentInspection.summary = {};
+  currentInspection.summary[catId] = { status: status.toLowerCase(), findings: findings || '' };
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { summary: currentInspection.summary }
+  });
+  renderSummaryTab();
+}
+
+// ── SKUs Tab ──────────────────────────────────────────
+function renderSkusTab() {
+  const d = currentInspection;
+  const el = $('tab-skus');
+  let html = `<div class="card">
+    <div class="card-title">SKU Inspection <button class="btn btn-sm btn-outline" style="float:right" onclick="addSku()">+ Add SKU</button></div>`;
+  (d.skus || []).forEach((sku, idx) => {
+    html += `<div class="sku-item">
+      <div class="flex-between">
+        <h4>${sku.name || `SKU ${idx + 1}`}</h4>
+        <button class="btn btn-sm btn-danger" onclick="removeSku(${idx})">Remove</button>
+      </div>
+      <div class="row mt-2">
+        <div><label>Ordered</label><input type="number" value="${sku.ordered}" onchange="updateSku(${idx},'ordered',this.value)" placeholder="0"></div>
+        <div><label>Found</label><input type="number" value="${sku.found}" onchange="updateSku(${idx},'found',this.value)" placeholder="0"></div>
+      </div>
+      <div class="row">
+        <div><label>Missing</label><input type="number" value="${sku.missing}" onchange="updateSku(${idx},'missing',this.value)" placeholder="0"></div>
+        <div><label>Sampled</label><input type="number" value="${sku.sampled}" onchange="updateSku(${idx},'sampled',this.value)" placeholder="0"></div>
+      </div>
+      ${renderSkuMeasurements(sku, idx)}
+      <label>FNSKU</label>
+      <input value="${sku.fnsku || ''}" onchange="updateSku(${idx},'fnsku',this.value)" placeholder="e.g. X000OKZXBP">
+      <label>Defects/Findings</label>
+      <textarea onchange="updateSku(${idx},'defects',this.value)" rows="2">${sku.defects || ''}</textarea>
+      <div class="row">
+        <div><label>Ref. Category</label><input value="${sku.ref_category || ''}" onchange="updateSku(${idx},'ref_category',this.value)" placeholder="e.g. C, E"></div>
+      </div>
+      <div class="photo-btn mt-2" onclick="openCamera(${idx})">Take Photo</div>
+      ${sku.photos && sku.photos.length > 0 ? `<div class="photo-grid">${sku.photos.map((p, pi) => {
+        const imgPath = typeof p === 'string' ? p : p.path;
+        const cap = typeof p === 'string' ? '' : p.caption || '';
+        return `<div style="position:relative;margin-bottom:4px"><img src="/${imgPath}" onerror="this.style.display='none'" style="width:100%;height:80px;object-fit:cover;border-radius:4px;border:1px solid #e5e0d5">${cap ? `<div style="font-size:9px;color:#dc3545;margin-top:2px;line-height:1.2">${cap}</div>` : ''}</div>`;
+      }).join('')}</div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function renderSkuMeasurements(sku, idx) {
+  const d = currentInspection;
+  const template = d.product_type === 'singing_bowls'
+    ? ['Package Weight (g)', 'Wrap/Box Dimension (cm)', 'Bowl Diameter (cm)']
+    : ['Average Pouch Weight (g)', 'Ball Weight (g)', 'Ball Size (cm)'];
+  let html = '<div class="row">';
+  template.forEach(f => {
+    const val = (sku.measurements || {})[f] || '';
+    html += `<div><label>${f}</label><input value="${val}" onchange="updateSkuMeasurement(${idx},'${f}',this.value)" placeholder="0"></div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function updateSku(idx, field, value) {
+  if (!currentInspection.skus) return;
+  if (!currentInspection.skus[idx]) return;
+  currentInspection.skus[idx][field] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { skus: currentInspection.skus }
+  });
+}
+
+function updateSkuMeasurement(idx, field, value) {
+  if (!currentInspection.skus) return;
+  if (!currentInspection.skus[idx]) return;
+  if (!currentInspection.skus[idx].measurements) currentInspection.skus[idx].measurements = {};
+  currentInspection.skus[idx].measurements[field] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { skus: currentInspection.skus }
+  });
+}
+
+function addSku() {
+  if (!currentInspection.skus) currentInspection.skus = [];
+  const name = prompt('SKU Name:');
+  if (!name) return;
+  currentInspection.skus.push({ name, ordered: '', found: '', missing: '', sampled: '', measurements: {}, defects: '', ref_category: '', photos: [] });
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { skus: currentInspection.skus }
+  });
+  renderSkusTab();
+}
+
+function removeSku(idx) {
+  if (!confirm(`Remove ${currentInspection.skus[idx]?.name}?`)) return;
+  currentInspection.skus.splice(idx, 1);
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { skus: currentInspection.skus }
+  });
+  renderSkusTab();
+}
+
+// ── Camera ────────────────────────────────────────────
+function openCamera(skuIdx) {
+  cameraSkuIdx = skuIdx;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const caption = prompt('Describe defects in this photo (optional):') || '';
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+      const form = new FormData();
+      form.append('photo', dataUrl);
+      form.append('sku_idx', skuIdx);
+      form.append('caption', caption);
+      await api(`/api/inspection/${currentInspection.id}/photo`, {
+        method: 'POST',
+        body: form
+      });
+      toast('Photo captured!');
+      loadInspection(currentInspection.id);
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+// ── Packaging Tab ─────────────────────────────────────
+function renderPackagingTab() {
+  const d = currentInspection;
+  const el = $('tab-packaging');
+  
+  let html = `<div class="card">
+    <div class="card-title">Packaging, Marking & Labeling</div>`;
+  (d.packaging || []).forEach((pkg, idx) => {
+    html += `<div class="sku-item">
+      <h4>${pkg.item}</h4>
+      <label>Findings</label>
+      <textarea onchange="updatePackaging(${idx},'findings',this.value)" rows="2">${pkg.findings || ''}</textarea>
+      <div class="row">
+        <div><label>Status</label>
+          <select onchange="updatePackaging(${idx},'status',this.value)">
+            <option value="pass" ${pkg.status === 'pass' ? 'selected' : ''}>Pass</option>
+            <option value="fail" ${pkg.status === 'fail' ? 'selected' : ''}>Fail</option>
+            <option value="na" ${pkg.status === 'na' ? 'selected' : ''}>N/A</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="card mt-2">
+    <div class="card-title">Functional Tests</div>`;
+  (d.functional_tests || []).forEach((ft, idx) => {
+    html += `<div class="sku-item">
+      <h4>${ft.test}</h4>
+      <div class="row">
+        <div><label>Performed</label>
+          <select onchange="updateFuncTest(${idx},'performed',this.value)">
+            <option value="yes" ${ft.performed === 'yes' ? 'selected' : ''}>Yes</option>
+            <option value="no" ${ft.performed === 'no' ? 'selected' : ''}>No</option>
+          </select>
+        </div>
+        <div><label>Status</label>
+          <select onchange="updateFuncTest(${idx},'status',this.value)">
+            <option value="pass" ${ft.status === 'pass' ? 'selected' : ''}>Pass</option>
+            <option value="fail" ${ft.status === 'fail' ? 'selected' : ''}>Fail</option>
+          </select>
+        </div>
+      </div>
+      <label>Result / Notes</label>
+      <textarea onchange="updateFuncTest(${idx},'result',this.value)" rows="2">${ft.result || ''}</textarea>
+    </div>`;
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function updatePackaging(idx, field, value) {
+  if (!currentInspection.packaging) return;
+  currentInspection.packaging[idx][field] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { packaging: currentInspection.packaging }
+  });
+}
+
+function updateFuncTest(idx, field, value) {
+  if (!currentInspection.functional_tests) return;
+  currentInspection.functional_tests[idx][field] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { functional_tests: currentInspection.functional_tests }
+  });
+}
+
+// ── Factory Tab ───────────────────────────────────────
+function renderFactoryTab() {
+  const d = currentInspection;
+  const el = $('tab-factory');
+  const fr = d.factory_review || {};
+  el.innerHTML = `<div class="card">
+    <div class="card-title">Factory Review</div>
+    <label>Factory Cooperation</label>
+    <textarea onchange="saveFactory('cooperation',this.value)" rows="2">${fr.cooperation || ''}</textarea>
+    <label>Number of Workers</label>
+    <input value="${fr.workers || ''}" onchange="saveFactory('workers',this.value)" placeholder="e.g. Less than 50">
+    <label>Inspector's Opinion</label>
+    <textarea onchange="saveFactory('opinion',this.value)" rows="3">${fr.opinion || ''}</textarea>
+  </div>
+  <div class="card mt-2">
+    <div class="card-title">Media Links</div>
+    <label>Sound Tests</label>
+    <input value="${(d.media_links || [])[0] || ''}" placeholder="Google Drive link" onchange="saveMediaLink(0,this.value)">
+    <label>Warehouse Photos/Videos</label>
+    <input value="${(d.media_links || [])[1] || ''}" placeholder="Google Drive link" onchange="saveMediaLink(1,this.value)">
+    <label>Drop Test Results</label>
+    <input value="${(d.media_links || [])[2] || ''}" placeholder="Google Drive link" onchange="saveMediaLink(2,this.value)">
+  </div>`;
+}
+
+function saveFactory(field, value) {
+  if (!currentInspection.factory_review) currentInspection.factory_review = {};
+  currentInspection.factory_review[field] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { factory_review: currentInspection.factory_review }
+  });
+}
+
+function saveMediaLink(idx, value) {
+  if (!currentInspection.media_links) currentInspection.media_links = [];
+  currentInspection.media_links[idx] = value;
+  api(`/api/inspection/${currentInspection.id}/save`, {
+    method: 'POST',
+    body: { media_links: currentInspection.media_links }
+  });
+}
+
+// ── Review Tab ────────────────────────────────────────
+function renderReviewTab() {
+  const d = currentInspection;
+  const el = $('tab-review');
+  el.innerHTML = `<div class="card">
+    <div class="card-title">Review & Generate</div>
+    <div class="sku-item">
+      <h4>Client: ${d.client || 'Not set'}</h4>
+      <p style="font-size:12px;color:#6b6460">
+        Product: ${d.product_name}<br>
+        Date: ${d.inspection_date || 'Not set'}<br>
+        SKUs: ${(d.skus || []).length}<br>
+        Photos: ${(d.skus || []).reduce((s, sku) => s + (sku.photos || []).length, 0)}<br>
+        Status: <span class="badge badge-${d.status}">${d.status}</span>
+      </p>
+    </div>
+    <label>Conclusion</label>
+    <textarea onchange="saveField('conclusion', this.value)" rows="3">${d.conclusion || ''}</textarea>
+    <button class="btn btn-gold mt-3" onclick="generateReport()">Generate PDF Report</button>
+    <button class="btn btn-primary mt-2" onclick="deleteCurrent()" style="background:#dc3545">Delete This Report</button>
+  </div>`;
+}
+
+async function generateReport() {
+  const btn = document.querySelector('.btn-gold');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  try {
+    const result = await api(`/api/inspection/${currentInspection.id}/generate`, { method: 'POST' });
+    if (result.ok && result.pdf) {
+      toast(`Report generated!`);
+      // Offer download
+      const a = document.createElement('a');
+      a.href = `/download/${result.pdf.replace(/\\/g, '/')}`;
+      a.download = result.pdf.split('/').pop() || 'report.pdf';
+      a.click();
+    } else {
+      toast('Error: ' + (result.error || 'Unknown error'));
+    }
+  } catch (e) {
+    toast('Error generating report');
+  }
+  btn.disabled = false; btn.textContent = 'Generate PDF';
+}
+
+async function deleteCurrent() {
+  if (!confirm('Delete this inspection? This cannot be undone.')) return;
+  await api(`/api/inspection/${currentInspection.id}/delete`, { method: 'POST' });
+  toast('Deleted');
+  showList();
+}
+
+// ── Init ──────────────────────────────────────────────
+renderList();
+</script>
+</body>
+</html>
