@@ -324,15 +324,36 @@ function renderSummaryTab() {
 
 function editSummary(catId) {
   const s = (currentInspection.summary || {})[catId] || { status: 'passed', findings: '' };
-  const status = prompt(`Status for ${catId} (passed/failed/pending):`, s.status);
-  if (!status) return;
-  const findings = prompt(`Findings for ${catId}:`, s.findings);
+  closeModal();
+  modalEl = document.createElement('div');
+  modalEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300';
+  modalEl.innerHTML = `
+    <div style="background:#fff;border-radius:12px;padding:24px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.3)">
+      <h3 style="margin-bottom:12px;color:#0f1a2e">${catId} — ${catId === 'A' ? 'Quantity' : catId === 'B' ? 'Shape & Size' : catId === 'C' ? 'Workmanship' : catId === 'D' ? 'Product Spec' : catId === 'E' ? 'Packing' : catId === 'F' ? 'Marking & Labeling' : catId === 'G' ? 'Client Requirements' : 'Factory Review'}</h3>
+      <label>Status</label>
+      <select id="summary-status" style="margin-bottom:12px">
+        <option value="passed" ${s.status === 'passed' ? 'selected' : ''}>Passed</option>
+        <option value="failed" ${s.status === 'failed' ? 'selected' : ''}>Failed</option>
+        <option value="pending" ${s.status === 'pending' ? 'selected' : ''}>Pending</option>
+      </select>
+      <label>Findings</label>
+      <textarea id="summary-findings" rows="3" style="margin-bottom:12px">${s.findings || ''}</textarea>
+      <button class="btn btn-gold" style="margin-bottom:8px" onclick="saveSummary('${catId}')">Save</button>
+      <button class="btn btn-sm" style="width:100%;background:#e5e0d5;color:#333" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.body.appendChild(modalEl);
+}
+
+function saveSummary(catId) {
+  const status = document.getElementById('summary-status').value;
+  const findings = document.getElementById('summary-findings').value;
   if (!currentInspection.summary) currentInspection.summary = {};
-  currentInspection.summary[catId] = { status: status.toLowerCase(), findings: findings || '' };
+  currentInspection.summary[catId] = { status, findings };
   api(`/api/inspection/${currentInspection.id}/save`, {
     method: 'POST',
     body: { summary: currentInspection.summary }
   });
+  closeModal();
   renderSummaryTab();
 }
 
