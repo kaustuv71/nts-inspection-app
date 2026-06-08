@@ -143,11 +143,16 @@ async function renderList() {
     </div>`;
     return;
   }
-  list.innerHTML = inspections.map(i => `<div class="insp-item" onclick="showInspection('${i.id}')">
-    <div class="flex-between">
-      <h3>${i.client || 'New Inspection'} <span class="badge badge-${i.status}">${i.status}</span></h3>
+  list.innerHTML = inspections.map(i => `<div class="insp-item">
+    <div class="flex-between" style="cursor:pointer" onclick="showInspection('${i.id}')">
+      <div>
+        <h3>${i.client || 'New Inspection'} <span class="badge badge-${i.status}">${i.status}</span></h3>
+        <p>${i.product} &middot; ${i.inspection_date || 'No date'} &middot; ${i.updated ? new Date(i.updated).toLocaleDateString() : ''}</p>
+      </div>
     </div>
-    <p>${i.product} &middot; ${i.inspection_date || 'No date'} &middot; ${i.updated ? new Date(i.updated).toLocaleDateString() : ''}</p>
+    <div style="text-align:right;margin-top:4px">
+      <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deleteInspection('${i.id}')">Delete</button>
+    </div>
   </div>`).join('');
 }
 
@@ -621,6 +626,13 @@ async function deleteCurrent() {
   await api(`/api/inspection/${currentInspection.id}/delete`, { method: 'POST' });
   toast('Deleted');
   showList();
+}
+
+async function deleteInspection(id) {
+  if (!confirm('Delete this inspection? This cannot be undone.')) return;
+  await api(`/api/inspection/${id}/delete`, { method: 'POST' });
+  toast('Deleted');
+  renderList();
 }
 
 // ── Init ──────────────────────────────────────────────
